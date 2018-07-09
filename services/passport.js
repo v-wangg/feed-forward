@@ -49,9 +49,20 @@ passport.use(
     new GoogleStrategy({
         clientID: keys.googleClientID,
         clientSecret: keys.googleClientSecret,
-        callbackURL: "/auth/google/callback"
+        /**
+         * Below we have set a different googleRedirectURI for development (localhost...) and for production      (agile-plains.herokuapp...); usually we could just set callbackURL as a relative path and allow the    GoogleStrategy to append the correct absolute path automatically, but there's a problem with the way   Passport interacts with Heroku
+         * The problem is that the GoogleStrategy assumes that IF an incoming request to begin the OAuth          process has come through a proxy, then it must not be a very secure request; this causes it to         append 'http' rather than 'https' onto our production callback URI from Heroku - but it gets it        right during development because we're making the request from locahost which has no proxy obviously
+         * Now Heroku has a proxy for all incoming requests which helps it determine which one of ITS servers     our app is running on so that it can redirect any request from the browser to a heroku app to the      right app
+         * So naturally, if we just keep it as a relative path URI, Google will throw an error saying 'redirect   URI mismatch', since in our Google Developers Console we specified https for our Heroku production     callback URI while passport asks Google to redirect us to an http URI
+         * To fix this, we have set the correct and separate callback URIs as keys inside prod.js and dev.js      and have given the callbackURL property here an absolute path with a template string
+         * We could have also just given another config property into the GoogleStrategy of 'proxy = true' 
+            * But this causes the GoogleStrategy to trust ALL incoming requests which have gone through proxies   as secure and in turn attach https onto the URI
+            * I'm not sure if this is good security practice or not, since Stephen Grider says he's doing it      for simplicity's sake, so I've gone with the safer option
+         */
+        callbackURL: `${keys.googleRedirectURI}/auth/google/callback`
     }, (accessToken, refreshToken, profile, done) => {
-        /** Check if current user exists; the .findOne() DB query function takes an object as a parameter whose     property is what we're looking for inside our User collection (i.e we specify the criteria we're        looking for)
+        /** 
+         *  Check if current user exists; the .findOne() DB query function takes an object as a parameter whose    property is what we're looking for inside our User collection (i.e we specify the criteria we're       looking for)
          *  Since all database interactions are asynchronous, .findOne() returns a promise which we must handle
          *  The promise is resolved with a callback taking the user found; if none is found, it will be null
          */
