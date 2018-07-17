@@ -16,7 +16,7 @@ const passport = require('passport');
 const bodyParser = require('body-parser');
 const keys = require('./config/keys')
 // We must require the user model file before the passport file because the user model file must be executed first; inside there, the userSchema must be created BEFORE passport can reference and make use of the user model
-require('./models/User');
+require('./models/user');
 require('./services/passport');
 
 // Connect mongoose to our MongoDB database hosted on mLab; this URI is stored in a .gitignore'd keys file         since it's secret information that shouldn't be leaked to the public
