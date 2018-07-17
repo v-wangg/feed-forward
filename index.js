@@ -67,6 +67,8 @@ require('./routes/billing-routes')(app);
     * Next, given that we're in production, check if there's any request for production assets such as a          bundle.js file or css file; if there is, send them back what they're looking for (see next bullet point     for WHEN this type of request is actually made)
     * Lastly, now that we've exhausted all of our options - they're not looking for a route we've defined, nor    a production asset file - they MUST be looking for a route defined on the client-side; in this case,        we can just give them back the index.html file
         * This index.html file will then be run, and inside it there will be a <script> tag which makes a         request AGAIN to our backend server for the bundle.js file or other production asset, since the         <script> tag defines this file as being required in order for our index.html file to run; THIS THE      CASE FOR WHEN A REQUEST FOR A PRODUCTION ASSET WILL BE MADE
+    * IMPORTANT CONCEPT: When we manually change the URL in our browser, we're making a brand new HTTP request    to that route; by contrast, if we click a ReactRouter <Link> tag, there is no interaction with our          backend whatsoever
+        * This means that once our express server initially gives back an index.html file when a user visits an   unrecognized route, the user theoretically should just be navigating around using react-router <Link>   tags, meaning the server doesn't have to re-send this index.html file every single time the route       changes; the only time this occurs is if an actual HTTP request is sent to the server somehow, which    mainly occurs when the user manually types in a route, which is very rare 
     * 
  */
 if (process.env.NODE_ENV === "production") {

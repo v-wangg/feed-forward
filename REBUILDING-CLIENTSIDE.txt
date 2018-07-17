@@ -43,4 +43,8 @@ In order to tell Heroku to install our client-side devDependencies, there is a c
 
     The problem with this is that it will set a global flag of "install devDependencies as well whenever we install any dependencies", meaning our server's devDependencies will be installed as well
 
+To avoid this problem, we omit the "heroku config:set" part, so that the flag is now just a local flag which only applies to DURING the time when this script is run, which will be after the server dependencies are already installed
+
+    So we can set this flag, then ask heroku to npm install and npm run build for us; we can tell it to run these commands inside the CLIENT directory by adding "--prefix client"
+
     
