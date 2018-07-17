@@ -60,32 +60,31 @@ passport.use(
             * I'm not sure if this is good security practice or not, since Stephen Grider says he's doing it      for simplicity's sake, so I've gone with the safer option
          */
         callbackURL: `${keys.googleRedirectURI}/auth/google/callback`
-    }, (accessToken, refreshToken, profile, done) => {
+    }, 
+    async (accessToken, refreshToken, profile, done) => {
         /** 
          *  Check if current user exists; the .findOne() DB query function takes an object as a parameter whose    property is what we're looking for inside our User collection (i.e we specify the criteria we're       looking for)
          *  Since all database interactions are asynchronous, .findOne() returns a promise which we must handle
          *  The promise is resolved with a callback taking the user found; if none is found, it will be null
          */
-        User.findOne({googleID: profile.id})
-            .then((existingUser) => {
-                if (existingUser) {
-                    // done() is called with an error as the first arg and the new or existing user as the         second arg; it's defined this way since the GoogleStrategy was created so that we could     log a record of one of our users into our app - so once we've done that, we should have     reference to that user somehow
-                    done(null, existingUser);
-                } else {
-                    /** Create a new instance of user and save it as a record into MongoDB
-                     *  This is necessary because we need some sort of unique identifying token to compare for     consistency between logins for a given user; since a user's email can change, it's best    to save their googleID 
-                     *  Since this action is asynchronous, it returns a promise which we must handle; .then()'s    callback is called with an instance of the saved user into the database
-                     *  The new model instace we created with the 'new' keyword is SEPARTE to the savedUser        model instance given to us in the .then() callback
-                        *   They both reference the SAME record in our MongoDB, except the 'new' keyword            instance is just a bit older, whereas the savedUser instance might have some data       in it which has been updated or changed upon saving the 
-                        *   So, by convention, we always make use of the newer, more well maintained instance       of our MongoDB record, savedUser 
-                     *  BUT this googleID is only needed to confirm signins - after a user has signed in, there    is NO NEED for their googleID at all, we will use their MongoDB record ID instead
-                     */         
-                    new User({ googleID: profile.id })
-                        .save()
-                        .then((savedUser) => {
-                            done(null, savedUser);
-                        })
-                }
-            })
+        const existingUser = await User.findOne({googleID: profile.id})
+
+        if (existingUser) {
+            // done() is called with an error as the first arg and the new or existing user as the         second arg; it's defined this way since the GoogleStrategy was created so that we could log a record of one of our users into our app - so once we've done that, we should have reference to that user somehow
+
+            // If we return done() rather than just call it raw, we eliminate the need to create an else{} statement since the code below will no longer run if we hit this if statement - this simplifies our code further - it doesn't matter if done() returns nothing, this is the same idea as in java where we can still return null in a function that's not void; if done() does return something, since our callback wasn't designed to return anything useful, the code which executes the callback (inside the promise hidden underneath the async/await syntax), won't assign the return value of the callback to anything, so we don't have to worry
+            return done(null, existingUser);
+        } 
+
+        /** Create a new instance of user and save it as a record into MongoDB
+         *  This is necessary because we need some sort of unique identifying token to compare for     consistency between logins for a given user; since a user's email can change, it's best to save their googleID 
+         *  Since this action is asynchronous, it returns a promise which we must handle; .then()'s callback is called with an instance of the saved user into the database
+         *  The new model instace we created with the 'new' keyword is SEPARTE to the savedUser model instance given to us in the .then() callback
+            *   They both reference the SAME record in our MongoDB, except the 'new' keyword            instance is just a bit older, whereas the savedUser instance might have some data in it which has been updated or changed upon saving the 
+            *   So, by convention, we always make use of the newer, more well maintained instance of our MongoDB record, savedUser 
+            *  BUT this googleID is only needed to confirm signins - after a user has signed in, there is NO NEED for their googleID at all, we will use their MongoDB record ID instead
+            */         
+        const savedUser = await new User({ googleID: profile.id }).save()
+        done(null, savedUser);
     })
 );

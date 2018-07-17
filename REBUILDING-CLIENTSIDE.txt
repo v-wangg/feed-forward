@@ -1,0 +1,46 @@
+----------------------------------------------------------------------------------------------------------------
+------------------------------- HOW THE BUILDING OUR CLIENT SIDE WORKS IN PRODUCTION ---------------------------
+
+In development, our CRA server automatically builds our file for us whenever we make a change to it and serves these files to the user
+
+In production however, there is no CRA to do this; if we don't rebuild our client side to create a bundle.js etc. every time we deploy our app to heroku, then the user won't see any of our changes, since the server displays data and web pages based off our /client/build directory ONLY, not any other folders and files we defined
+
+BUT the other problem is that, by convention, we don't ever commit our build directory to git
+
+In turn, we have 3 options:
+
+    Option 1: EVERY time we make a change to the client side which we want to push to production, we manually rebuild our app (via npm run build), break convention and commit the app to git, and then push it to heroku
+
+        This is bad since it relies on us remembering to rebuild the app, and forces us to break convention
+
+    Option 2: We can add a Heroku build step configuration in our package.json whereby we tell heroku that, whenever we push a new version of our app to it, it needs to install *ALL* the dev-dependencies (not just client-side production dependencies) for the client-side project and then run the command to re-build the client-side project so that it can run a fresh version of our app
+
+        While this works perfectly fine, the problem with it is that we're installing ALL the dependencies for the client-side; this means that we're installing ALL the create-react-app files (webpack, babel, etc.),which are actually ONLY needed in development, JUST SO it can re-build our app; after the rebuild is complete, it will never use any of those files which were set up for development again
+
+        We could very well do this, but there is a better way for real, enterprise-scale projects
+
+    Option 3: We can push our project to a Continuous Integration (CI) Server (see circleci docs for more), which is designed to run a bunch of pre-defined tests and config for us whenever we try to deploy our app to production; we can also tell it to additionally rebuild our app and then commit it to git FOR US, and then ALSO PUSH it to Heroku FOR US
+
+        This is super good because, if we had a team of developers, it streamlines the workflow since *some* of their work can be just tested via circleci rather than manually, and it circumvents the need to install useless dependencies just for this build step
+
+----------------------------------------------------------------------------------------------------------------
+---------------------------------   ADDING BUILD SCRIPTS INTO PACKAGE.JSON -------------------------------------
+
+(See Heroku "node.js support" docs for more)
+
+Keep in mind that Heroku ONLY interacts with our server's package.json file; it has nothing to do with the client's package.json file at all 
+
+Heroku gives us the option of defining a "postInstall" script inside our server's package.json file which is ALWAYS run whenever the dependencies for our server is installed, which Heroku does by default whenever we push a new version of our app to it
+
+    We could use this, but this script is ALSO run whenever someone randomly runs "npm install" (i.e install all dependencies) inside the server directory, even during development; we don't really want them to have to rebuild our app whenever they do this, so we should go with another option installed
+
+We can also define a "heroku-postbuild" script inside our server's package.json which runs after *ONLY* HEROKU installs all our server-dependencies, not just after any npm install command
+
+    This is a really good place to place a script which installs all the dependencies (incl. devDependencies) for our client side (but not the devDependencies for our server side) and then run a rebuild script to update our /client/build directory for Heroku in production (see package.json)
+
+In order to tell Heroku to install our client-side devDependencies, there is a command of:
+"heroku config:set NPM_CONFIG_PRODUCTION=false"
+
+    The problem with this is that it will set a global flag of "install devDependencies as well whenever we install any dependencies", meaning our server's devDependencies will be installed as well
+
+    

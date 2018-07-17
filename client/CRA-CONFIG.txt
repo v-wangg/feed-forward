@@ -1,0 +1,128 @@
+------------------------------------------THE CREATE-REACT-APP PROXY ------------------------------------------
+Inside of the client's package.json, we have set up configuration for a proxy within create-react app. 
+
+The configuration essentially sets up a proxy for us so that whenever a request is made to the given routes ("/auth/google" in our case), that request is automatically forwarded onto the domain localhost:5000 rather than the our client's current domain of localhost:3000 (which the browser will automatically do whenever we specify a relative path in a route or link).
+
+    This avoids the bug where whenver we click a link with a relative path, we attempt to connect to that relative path on the localhost:3000 domain, in which there is no route set up, since our server's routes are all running on localhost:5000.
+
+    But it's important to note that our browser is still making a request to localhost:3000 FIRST, and THEN being proxied to localhost:5000
+
+    This is the problem with us trying to run 2 separate front and back end servers at once, but this proxy fixes this
+
+The difference IN PRODUCTION is that the front and back end don't have separate servers - the features create-react-app give us are all for development, so there is no need for us to run its server during PRODUCTION
+
+    So this means that we don't need the proxy at all in production - our relative paths mean our browser will automatically append on the correct domain when we're trying to access the backend api, since our client and server are running on the same domain (agile-plains...herokuapp.com)
+
+    All we need to do during production is build the application by running "npm run build" inside the client directory - this will create a bundle representing our entire react front end application - from there, can deploy our app to heroku and just let our express server serve up that bundle.js file whenever the browser requests it, meaning our entire application runs on that express server rather than on 2 separate servers
+
+        So in production, the package.json file with all the proxy config won't even exist, since all we're using is the bundled js file 
+
+    This works because the express server also uses relative paths, so the express server's api will be on the heroku domain, and any route or link clicked in the front end will also be on the heroku domain, so we can automatically access the backend from the frontend without any proxy
+
+We can also include wildcard routes as we have done with an route of "/api/*", which allows us to avoid defining tonnes of routes which require this proxy
+
+----------------------------------------------------------------------------------------------------------------
+--------------------------------------- WHY WE CHOSE THIS ARCHITECTURE -----------------------------------------
+
+We could emply an alternate architecture where, instead of merging the front and back end servers in production,we keep them on entirely separate domains
+
+    This approach is good because it keeps the backend API entirely separate from the frontend - so we would have emaily.com for all client-side things; i.e serving up our bundle.js, etc. and have emaily-api.com serving up all our server-side things
+
+    Although this would introduce problems with the absolute routing etc., it might be argued that it's worth it to somehow solve it in order to have this type of architecture
+
+While this might be good, this introduces new, complex problems, which aren't worth it to solve for the purposes of THIS app - our solution is good enough
+
+Problem 1: Browser cross-origin cookies
+
+    Whenever a browser makes requests to a domain which is different from the one it's currently on, i.e emaily-dev.com vs. emaily.com, it will be scared that there has been some sort of malicious javascript included in the app, so it WON'T automatically include any cookies inside any requests to that external domain's API
+
+    This problem isn't existent in our architecture since all of the backend and frontend API is on the same domain, and, during development, the browser FIRST makes a request to localhost:3000, and since this is the same as its current domain, it will include the cookie, and THEN the proxy forwards the request to localhost:5000
+
+    While this problem can be fixed, it's pretty tedious and advanced, so our architecture keeps things simple and makes life easier for the purposes of this course
+
+Problem 2: CORS issues
+
+    This problem follows the same logic as the preious one; when the browser attempts to make a request to an API with a different domain to its current one, it will throw a CORS error 
+
+    While this can also be fixed, our current architecture is just much simpler
+
+----------------------------------------------------------------------------------------------------------------
+------------------------------------- ENTIRE OAUTH FLOW INCLUDING PROXY ----------------------------------------
+
+IN DEVELOPMENT 
+
+    If we have a link with a relative path of "/auth/google" and a user clicks it, since the browser is on localhost:3000, the browser will automatically make a request to localhost:3000/auth/google
+
+    This request then hits the proxy, and the proxy will first check inside the package.json file to see whether or not there is any config to handle this type of request, and there is
+
+        Now that the proxy knows it's responsible for this request, it will tell this current request to just sit and be pending
+
+        It then copies this request exactly as it is, and sends this req to the new route we specified inside the proxy config; so it will send it to locahost:5000/auth/google 
+
+    Our express API will now see that there is a request to OAuth, so it will formulate a response saying we need to first go to google, and after we've signed in, we need to visit the callback URL we defined inside the GoogleStrategy
+
+        Now if we gave the GoogleStrategy a proxy setting of true (to deal with heroku; see passport.js comments) and thus set the callback url to as a relative path, it would just give back that relative path
+
+            If we instead chose not to give a proxy setting of true, then we would give it back an absolute path
+
+    Express then gives this response back to the proxy, and the proxy takes this response and sends it BACK to the pending request within the browser
+
+    Now the browser knows what it needs to do based on this response: it needs to visit google, and after logging in, it needs to redirect the user to "/auth/google/callback"
+
+        So essentially, the code that was supposed to be executed when that request was initially made by the browser is NOW being executed - the proxy essentially just acted as a middleman which redirected the request to another domain, fetched the code that needed to be executed on that route, and gave it to the browser
+
+        But IF our code inside our google strategy included a relative path of "/auth/google/callback" rather than an absolute one, since the code is being executed in the BROWSER'S environment (i.e we are on the domain localhost:3000 rather than locahost:5000), then we will be redirected to localhost:3000/auth/google/callback
+
+            This will cause a Google redirect URI error, so we'd have to specify locahost:3000/auth/google/callback as a valid redirect URI in our Google Developers Console - this is totally fine since it's just another development environment which we know we can trust
+
+        If our code was set as an absolute path, then there is no need for this
+    
+    Now once the user grants us permission to access their data, we will be redirected back to localhost:5000/auth/google/callback?code=12037 IF we gave an absolute path, and localhost:3000/auth/google/callback?code=12037 IF we gave a relative path
+
+        In the case where we gave an absolute path, there's no need for the proxy to do anything, since we've visited the correct domain where our express API is on, so express will fetch all the user's info from there 
+
+        In the case where we gave a relative path, the proxy will make the request to that URI sit as pending first
+
+            It will then copy that req exactly as it is, send that req to the API at localhost:5000, and our express server will now send a response back to the browser fetch all the user's data
+
+    A problem might arise where, if we used an absolute path, when we try to redirect our user back to localhost:3000/ when everthing is done, we accidentally redirect them to locahost:5000/
+
+        This happens because our redirect URL would be at the localhost:5000 callback url rather than localhost:3000 like when we define a relative path
+
+        In turn, if we give a relative path of "/" to redirect our users to, the browser will automatically append locahost:5000/ to it rather than locahost:3000/
+
+    To fix this, we can set a "rootURL" property to our dev.js and prod.js keys files and redirect the user to an absolute path of keys.rootURL rather than a relative one - this takes into account whether or not we're in a production or development environment too
+
+
+IN PRODUCTION
+
+    In production, there is no need for our proxy, so everything is much more simple
+
+    When a user clicks on the OAuth route for "/auth/google", the browser makes a request to "emaily.herokuapp.com/auth/google" (or whatever our heroku app name is)
+
+    The request then reaches our express API, express sees that we're trying to OAuth, and it tells the browser that it first needs to go to Google's login page, which it does, and then to the callback page, which it does
+
+    Now once the user grants us permission to use their data, the browser visits emaily.herokuapp.com/auth/google/callback?code=2390107, which is already the correct domain and API address
+
+    The express server then fetches the user's details, and we are redirected back to the root url with relative path "/"
+----------------------------------------------------------------------------------------------------------------
+----------------------------------- CREATE REACT APP ENVIRONMENT VARIABLES -------------------------------------
+
+The problem with needing our Stripe API Publishable Key in the front-end is that ALL front-end files are publically visable - this means that we can't use the same config folder with all our API keys from the backend in our front-end, or else everyone will see our API keys (albeit they'll only see the dev keys, but we still don't want this obviously)
+
+To fix this, we might naively say, let's just create a new config folder in our frontend and store our publishable keys (which, by definition, CAN be seen by the public and are the only type of keys needed by our front-end; the front-end doesn't need a secret key for Stripe) inside separate dev.js and prod.js files
+
+    The problem with THIS is that, since we're using ES2015 modules in the front-end, ES6's import statements don't allow for logic to be added before it like we were able to do in the backend with the CommonJS modules (require statements, etc.)
+
+    So in keys.js in the backend, we were able to do if (x) {module.exports = require(y)}, but inside ES6, this is impossible, since import statements HAVE to be at the top of the file and are always included no matter what, regardless of any conditions we try to put on it
+
+So the actual solution is to use create-react-app's environment variables, which it sets up for us if we define .env files inside the root client directory
+
+    We have a separate .env.production and .env.development respectively, and create-react-app will automatically put these environment variables onto process.env.___ for us (see their docs for more info), just like in our node environment
+
+It might be confusing as to why these variables are accessible even during production, since create-react-app is kind of just a development tool whose servers aren't running in the front-end; I think when create-react-app creates the bundle.js file for production, it somehow adds these environment variables in for use
+
+It should also be noted that in this project, we're using the same Stripe API keys for both development AND production; this is just because the process of activating our Stripe test account is too tedious - in practice,we should use a Stripe test account for development, and an activated, untouched Stripe account for production
+
+
+
