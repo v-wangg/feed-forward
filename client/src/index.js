@@ -19,6 +19,11 @@ import reduxThunk from 'redux-thunk';
 import App from './components/App';
 import rootReducer from './reducers';
 
+// We assign axios to the global property such that we can reference axios within the chrome console by just typing "axios.post", etc; this allows us to test all of our backend routes which require auth or payments properly without going through any tedious configuration needed with REST clients such as Postman (see /server/routes/survey-routes for info on HOW this testing is actually done)
+// These are only needed in development, so should be deleted when they're not needed and re-written when they are; but since there are notes here I'll leave them in, even in production
+import axios from 'axios';
+window.axios = axios;
+
 // The second argument is the initial state of the app; this is mostly only used during server-side rendering
 const store = createStore(rootReducer, {}, applyMiddleware(reduxThunk));
 

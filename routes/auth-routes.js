@@ -29,7 +29,7 @@ module.exports = app => {
              *  We need to redirect the user to an absolute path because, within passport.js, we set our google    redirect URI during dev to be an absolute path with localhost 5000; if we gave it a relative       path, the browser would have executed the passport strategy above with localhost 3000 (see         create-react-app proxy notes in IMPORTANT-NOTES.txt for reason), and in turn if we just gave a     relative path of "/surveys", it would've been all good
              *  But since the browser is executing the passport strategy above on localhost 5000, we have to       redirect it to an absolute path of locahost 3000 in order for it to reach the correct route
              */
-            res.redirect(`${keys.clientHomeURI}/surveys`);
+            res.redirect(`${keys.redirectDomain}/surveys`);
         }
     )
 
@@ -41,7 +41,7 @@ module.exports = app => {
         /**
          * We need to give an absolute path of the clientHomeURI for the same reasons as the redirect upon        login (see above)
          */
-        res.redirect(`${keys.clientHomeURI}`)
+        res.redirect(`${keys.redirectDomain}`)
     });
 
     app.get("/api/current-user", (req, res) => {

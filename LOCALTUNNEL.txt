@@ -1,0 +1,21 @@
+---------------------------------------------------------------------------------------------------------------
+--------------------------------------- HOW SENDGRID WEBHOOKS WORK --------------------------------------------
+When a use clicks a link within the email we sent, this goes to Sendgrid first, and is then forwarded to us; this is called a webhook because it's essentially an HTTP callback where an external API needs to interact with our own API
+
+It's impractical for Sendgrid to send us a webhook request every single time a separate user clicks on a link, so instead Sendgrid lets those users accumulate for about, eg. 30 seconds, and then sends them; so we're receiving webhooks from them about every 30 seconds
+
+In production, this is simple for Sendgrid - all we need to do is provide the route in which they need to provide the webhook to, and Sendgrid can send us the list of users' emails who clicked on a link in the last 30 seconds
+
+    But the only reason this works so well in production is because the domain on which our app is running on is a public domain which anyone can access (herokuapp.com)
+
+But in development, Sendgrid won't know what domain to give this webhook to since our app only runs our local machine and nowhere else
+
+    This is where LocalTunnel comes in; we can specify a subdomain on LocalTunnel's server, which is public, which is connected to the instance of the LocalTunnel server running on our computer, which in turn is connected to our localhost:5000 app
+
+    This means that when Sendgrid gives us webhook data, they will be told to send this, in development, to the LocalTunnel public subdomain we chose (it's best for this to be as random as possible so as to avoid using the same subdomain as someone else and receiving someone else's webhook data; ref package.json "webhook" script) - this public subdomain will then forward this data to the LocalTunnel server running on our local machine, which in turn gets forwarded onto locahost:5000, allowing us to essentially indirectly make our localhost instance accessible publically
+
+Thus, we've set up the "npm run dev" script to include a script to concurrently run our localtunnel server as well
+
+To set up the localtunnel route at which Sendgrid needs to visit to send us the data we need, we need to go to our Sendgrid dashboard and go to settings --> mail settings --> event notifications, and define an HTTP POST URL with the localtunnel url we created, such as asiodnas.localtunnel.me, and then also add the actual route we're using, such as asiodnas.localtunnel.me/api/surveys/webhooks
+
+    We then define an app.post() route matching up to that... see survey-routes.js for more details on what that route actually does

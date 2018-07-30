@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { FETCH_USER } from './types';
+import { FETCH_USER, FETCH_SURVEYS } from './types';
 
 /** SYNTAX EXPLANATION
      *  Here we use ES2015 syntax where, if a function contains ONLY a return statement and nothing else;
@@ -31,6 +31,23 @@ export const handleStripeToken = token => async dispatch => {
     const res = await axios.post("/api/stripe-token", token);
     dispatch({
         type: FETCH_USER,
+        payload: res.data
+    })
+}
+
+export const submitSurvey = (values, history) => async dispatch => {
+    const res = await axios.post("/api/surveys/new", values);
+    history.push('/surveys');
+    dispatch({
+        type: FETCH_USER,
+        payload: res.data
+    });
+}
+
+export const fetchSurveys = () => async dispatch => {
+    const res = await axios.get('/api/surveys');
+    dispatch({
+        type: FETCH_SURVEYS,
         payload: res.data
     })
 }

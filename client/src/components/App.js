@@ -4,12 +4,11 @@ import { connect } from 'react-redux';
 
 import Header from './Header';
 import Landing from './Landing';
+import Dashboard from './Dashboard';
+import SurveyNew from './surveys/SurveyNew';
 
 // This statement takes all the exported functions inside the index.js of /actions, and assigns them to the        "actions" object
 import * as actions from '../actions';
-
-const Dashboard = () => <h2> Dashboard </h2>
-const SurveyForm = () => <h2> Survey Form </h2>
 
 class App extends Component {
     /**
@@ -30,7 +29,7 @@ class App extends Component {
                         <Header />
                         <Route exact path="/" component={Landing}/>
                         <Route exact path="/surveys" component={Dashboard} />
-                        <Route path="/surveys/new" component={SurveyForm} />
+                        <Route path="/surveys/new" component={SurveyNew} />
                     </div>
                 </BrowserRouter>
             </div>

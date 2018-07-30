@@ -17,6 +17,7 @@ const bodyParser = require('body-parser');
 const keys = require('./config/keys')
 // We must require the user model file before the passport file because the user model file must be executed first; inside there, the userSchema must be created BEFORE passport can reference and make use of the user model
 require('./models/user');
+require('./models/survey');
 require('./services/passport');
 
 // Connect mongoose to our MongoDB database hosted on mLab; this URI is stored in a .gitignore'd keys file         since it's secret information that shouldn't be leaked to the public
@@ -59,6 +60,7 @@ app.use(passport.session());
 // Set up application routes
 require('./routes/auth-routes')(app);
 require('./routes/billing-routes')(app);
+require('./routes/survey-routes')(app);
 
 /**
  * In production, there is no CRA server, only our express server; this means that whenever a user visits a       route NOT defined explicitly by our express server (through app.get()), such as herokuapp.com/surveys, then    whereas before our CRA server would give them the assets such as the bundle.js file or a css file or           something, now our express server has to handle this task

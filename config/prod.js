@@ -7,8 +7,10 @@ module.exports = {
     googleClientSecret: process.env.GOOGLE_CLIENT_SECRET,
     mongoURI: process.env.MONGO_URI,
     cookieKey: process.env.COOKIE_KEY,
-    googleRedirectURI: "https://agile-plains-32176.herokuapp.com",
-    clientHomeURI: "https://agile-plains-32176.herokuapp.com",
+    // The googleRedirectURI and redirectDomain aren't anything secret, but it's just good practice to store them as Heroku env variables since we're doing it for everything else
+    googleRedirectURI: process.env.GOOGLE_REDIRECT_URI,
+    redirectDomain: process.env.REDIRECT_DOMAIN,
     stripePublishableKey: process.env.STRIPE_PUBLISHABLE_KEY,
-    stripeSecretKey: process.env.STRIPE_SECRET_KEY
+    stripeSecretKey: process.env.STRIPE_SECRET_KEY,
+    sendGridKey: process.env.SEND_GRID_KEY
 }
